@@ -19,21 +19,26 @@ def calculate_directory_checksum(directory, compare_data=None):
 	files_checksums = {}
 	errors = {}
 	files_count = 0
+	base_directory = os.path.basename(os.path.normpath(directory))
 
 	for root, dirs, files in os.walk(directory):
 		for file in files:
 			root = root[:-1] if root.endswith('/') else root
-			file_path = root + '/' + file
+			file_path = os.path.join(root, file)
 			checksum = calculate_file_checksum(file_path)
 
-			if compare_data and compare_data[file_path]:
-				if checksum != compare_data[file_path]:
-					print('ERROR: File: ' + file_path + ' checksum not match.')
-					print('Old checksum: ' + compare_data[file_path])
-					print('Current checksum: ' + checksum)
-					errors[file_path] = 'Old checksum: ' + compare_data[file_path] + ' Current checksum: ' + checksum
+			#finding relative path for comparison
+			temporary_path = os.path.normpath(os.path.relpath(file_path, base_directory))
+			relative_path = base_directory + temporary_path.split(base_directory)[-1]
 
-			files_checksums[file_path] = checksum
+			if compare_data and compare_data[relative_path]:
+				if checksum != compare_data[relative_path]:
+					print('ERROR: File: ' + relative_path + ' checksum not match.')
+					print('Old checksum: ' + compare_data[relative_path])
+					print('Current checksum: ' + checksum)
+					errors[relative_path] = 'Old checksum: ' + compare_data[relative_path] + ' Current checksum: ' + checksum
+
+			files_checksums[relative_path] = checksum
 			files_count += 1
 
 	return files_checksums, files_count, errors
@@ -96,5 +101,5 @@ if __name__ == "__main__":
 			file_checksum(args.filename)
 
 		if os.path.isdir(args.filename):
-			output_file_name = args.output if args.output else 'checksums.txt'
+			output_file_name = args.output if args.output else 'sums.txt'
 			directory_checksum(args.filename, output_file_name)
